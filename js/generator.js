@@ -55,7 +55,40 @@ function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// Placeholder 
+/**
+ * Validate that a password satisfies all rules of a policy.
+ * @param {string} password
+ * @param {Object} policy
+ * @returns {boolean} true if password complies with all rules
+ */
 function validatePassword(password, policy) {
-  return true; // accept everything for now
+  // Rule 1: Minimum length
+  if (password.length < policy.minLength) {
+    return false;
+  }
+  // Rule 2: Maximum length
+  if (password.length > policy.maxLength) {
+    return false;
+  }
+  // Rule 3: Must contain at least one uppercase letter
+  if (policy.requireUppercase && !/[A-Z]/.test(password)) {
+    return false;
+  }
+  // Rule 4: Must contain at least one lowercase letter
+  if (policy.requireLowercase && !/[a-z]/.test(password)) {
+    return false;
+  }
+  // Rule 5: Must contain at least one digit
+  if (policy.requireDigit && !/[0-9]/.test(password)) {
+    return false;
+  }
+  // Rule 6: Must contain at least one symbol
+  if (policy.requireSymbol && !/[!@#$%^&*()\-_=+\[\]{}|;:,.<>?]/.test(password)) {
+    return false;
+  }
+  // Rule 7: No consecutive repeating characters
+  if (policy.noRepeating && /(.)\1/.test(password)) {
+    return false;
+  }
+  return true;
 }
