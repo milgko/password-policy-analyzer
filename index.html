@@ -10,7 +10,12 @@
   <h1>Password Policy Analyzer</h1>
   <p>Testing hypotheses about password strength and policy design.</p>
 
-  <div id="app">Loading...</div>
+  <div id="app">
+    <div class="chart-container">
+    <h2>Password Strength by Policy</h2>
+    <canvas id="scoreChart" width="700" height="400"></canvas>
+  </div>
+  </div>
 
   <script src="lib/zxcvbn.js"></script>
   <script src="js/policies.js"></script>
@@ -19,6 +24,5 @@
   <script src="js/charts.js"></script>
   <script src="js/analyzer.js"></script> 
 
-
-</body>
+ </body>
 </html>
