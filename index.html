@@ -13,7 +13,7 @@
   <div id="app">
     <div class="chart-container">
     <h2>Password Strength by Policy</h2>
-    <canvas id="scoreChart" width="700" height="400"></canvas>
+    <canvas id="scoreChart"    width="700" height="450"></canvas>
   </div>
   </div>
 
@@ -23,6 +23,19 @@
   <script src="js/realistic-passwords.js"></script>
   <script src="js/charts.js"></script>
   <script src="js/analyzer.js"></script> 
+
+  <div class="chart-container">
+  <h2>Generation Difficulty (Attempts Needed)</h2>
+  <p>A higher bar means users get rejected more often — tests H2</p>
+ <canvas id="attemptsChart" width="700" height="450"></canvas>
+</div>
+
+<div class="chart-container">
+  <h2>Mathematical Entropy by Policy</h2>
+  <p>Compares P2 (length-only) vs P3 (complex-only) — tests H1</p>
+  <canvas id="entropyChart"  width="700" height="450"></canvas>
+</div>
+
 
  </body>
 </html>

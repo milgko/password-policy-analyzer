@@ -124,3 +124,61 @@ function runFullAnalysis(passwordCount = 100) {
   console.log('Full analysis complete.');
   return allResults;
 }
+
+/**
+ * Automatically verify H1 and H2 against analysis results.
+ * Returns a structured report with evidence for each hypothesis.
+ */
+function verifyHypotheses(allResults) {
+  const lenient     = allResults.find(r => r.policyId === 'P1');
+  const lengthOnly  = allResults.find(r => r.policyId === 'P2');
+  const complexOnly = allResults.find(r => r.policyId === 'P3');
+  const standard    = allResults.find(r => r.policyId === 'P4');
+  const paranoid    = allResults.find(r => r.policyId === 'P5');
+
+  // H1: Does length (P2) contribute more to strength than complexity (P3)?
+  const h1Supported = lengthOnly.avgScore >= complexOnly.avgScore;
+  const h1Evidence  = {
+    hypothesis: 'H1: Minimum length contributes more to password strength than character complexity',
+    comparison: `${lengthOnly.policyName} score ${lengthOnly.avgScore.toFixed(2)} ` +
+                `vs ${complexOnly.policyName} score ${complexOnly.avgScore.toFixed(2)}`,
+    entropyComparison: `${lengthOnly.avgEntropy.toFixed(1)} bits vs ${complexOnly.avgEntropy.toFixed(1)} bits`,
+    supported: h1Supported,
+  };
+
+  // H2: Do excessive rules increase rejection without proportional security gain?
+  const securityGain   = paranoid.avgEntropy - standard.avgEntropy;
+  const complexityCost = paranoid.avgAttempts / standard.avgAttempts;
+  const h2Supported    = complexityCost > 1.2 && securityGain < 50;
+  const h2Evidence     = {
+    hypothesis: 'H2: Adding restriction rules increases rejection rate faster than it improves security',
+    securityGain:      `${securityGain.toFixed(1)} additional entropy bits`,
+    rejectionIncrease: `${complexityCost.toFixed(1)}x more generation attempts`,
+    comparison: `${paranoid.policyName}: ${paranoid.avgAttempts.toFixed(1)} attempts, ` +
+                `${paranoid.avgEntropy.toFixed(1)} bits ` +
+                `vs ${standard.policyName}: ${standard.avgAttempts.toFixed(1)} attempts, ` +
+                `${standard.avgEntropy.toFixed(1)} bits`,
+    supported:      h2Supported,
+    interpretation: h2Supported
+      ? 'The Paranoid policy requires significantly more user effort for only a small security gain'
+      : 'The data does not clearly show diminishing returns from complexity rules',
+  };
+
+  return {
+    h1: h1Evidence,
+    h2: h2Evidence,
+    recommendation: generateRecommendation(h1Evidence, h2Evidence),
+  };
+}
+
+function generateRecommendation(h1, h2) {
+  const parts = [];
+  if (h1.supported) {
+    parts.push('Minimum length (12+ characters) is the single most effective policy lever.');
+  }
+  if (h2.supported) {
+    parts.push('Excessive complexity rules create significant user friction with minimal security benefit.');
+  }
+  parts.push('Recommended policy: Minimum 12 characters with at most one additional requirement.');
+  return parts.join(' ');
+}
