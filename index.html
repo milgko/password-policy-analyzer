@@ -10,11 +10,33 @@
   <h1>Password Policy Analyzer</h1>
   <p>Testing hypotheses about password strength and policy design.</p>
 
+  <div class="controls">
+    <button id="runBtn" onclick="runAnalysis()">Run Analysis</button>
+    <label for="countInput">Passwords per policy:</label>
+    <input type="number" id="countInput" value="100" min="10" max="500">
+    <span id="status"></span>
+  </div>
+
   <div id="app">
     <div class="chart-container">
-    <h2>Password Strength by Policy</h2>
-    <canvas id="scoreChart"    width="700" height="450"></canvas>
-  </div>
+      <h2>Password Strength by Policy</h2>
+      <canvas id="scoreChart" width="700" height="450"></canvas>
+    </div>
+
+    <div class="chart-container">
+      <h2>Generation Difficulty (Attempts Needed)</h2>
+      <p>A higher bar means users get rejected more often — tests H2</p>
+      <canvas id="attemptsChart" width="700" height="450"></canvas>
+    </div>
+
+    <div class="chart-container">
+      <h2>Mathematical Entropy by Policy</h2>
+      <p>Compares P2 (length-only) vs P3 (complex-only) — tests H1</p>
+      <canvas id="entropyChart" width="700" height="450"></canvas>
+    </div>
+
+    <div id="hypothesisResults"></div>
+    <div id="resultsTable"></div>
   </div>
 
   <script src="lib/zxcvbn.js"></script>
@@ -22,20 +44,86 @@
   <script src="js/generator.js"></script>
   <script src="js/realistic-passwords.js"></script>
   <script src="js/charts.js"></script>
-  <script src="js/analyzer.js"></script> 
+  <script src="js/analyzer.js"></script>
 
-  <div class="chart-container">
-  <h2>Generation Difficulty (Attempts Needed)</h2>
-  <p>A higher bar means users get rejected more often — tests H2</p>
- <canvas id="attemptsChart" width="700" height="450"></canvas>
-</div>
+  <script>
+    function runAnalysis() {
+      const btn    = document.getElementById('runBtn');
+      const status = document.getElementById('status');
+      const count  = parseInt(document.getElementById('countInput').value) || 100;
 
-<div class="chart-container">
-  <h2>Mathematical Entropy by Policy</h2>
-  <p>Compares P2 (length-only) vs P3 (complex-only) — tests H1</p>
-  <canvas id="entropyChart"  width="700" height="450"></canvas>
-</div>
+      btn.disabled   = true;
+      status.textContent = 'Running analysis...';
 
+      // Small timeout so the UI updates before the heavy computation starts
+      setTimeout(() => {
+        const results = runFullAnalysis(count);
 
- </body>
+        drawScoreBarChart(results, 'scoreChart');
+        drawAttemptsChart(results, 'attemptsChart');
+        drawEntropyChart(results, 'entropyChart');
+
+        const verdict = verifyHypotheses(results);
+        renderHypothesisResults(verdict);
+        renderResultsTable(results);
+
+        btn.disabled = false;
+        status.textContent = 'Done.';
+      }, 50);
+    }
+
+    function renderHypothesisResults(verdict) {
+      const container = document.getElementById('hypothesisResults');
+      container.innerHTML = `
+        <h2>Hypothesis Results</h2>
+        <div class="hypothesis-result ${verdict.h1.supported ? 'supported' : 'unsupported'}">
+          <h3>H1: ${verdict.h1.supported ? 'Supported' : 'Not Supported'}</h3>
+          <p>${verdict.h1.hypothesis}</p>
+          <p><strong>Evidence:</strong> ${verdict.h1.comparison}</p>
+          <p><strong>Entropy:</strong> ${verdict.h1.entropyComparison}</p>
+        </div>
+        <div class="hypothesis-result ${verdict.h2.supported ? 'supported' : 'unsupported'}">
+          <h3>H2: ${verdict.h2.supported ? 'Supported' : 'Not Supported'}</h3>
+          <p>${verdict.h2.hypothesis}</p>
+          <p><strong>Evidence:</strong> ${verdict.h2.comparison}</p>
+          <p><strong>Friction increase:</strong> ${verdict.h2.rejectionIncrease}</p>
+          <p><strong>Security gain:</strong> ${verdict.h2.securityGain}</p>
+        </div>
+        <div class="chart-container">
+          <h2>Recommendation</h2>
+          <p>${verdict.recommendation}</p>
+        </div>
+      `;
+    }
+
+    function renderResultsTable(results) {
+      const container = document.getElementById('resultsTable');
+      const rows = results.map(r => `
+        <tr>
+          <td>${r.policyName}</td>
+          <td>${r.avgScore.toFixed(2)}</td>
+          <td>${r.avgEntropy.toFixed(1)} bits</td>
+          <td>${r.avgAttempts.toFixed(2)}</td>
+          <td>${r.scoreDistribution.score4} / ${r.totalPasswords}</td>
+        </tr>
+      `).join('');
+
+      container.innerHTML = `
+        <h2>Full Results Table</h2>
+        <table class="results-table">
+          <thead>
+            <tr>
+              <th>Policy</th>
+              <th>Avg zxcvbn Score</th>
+              <th>Avg Entropy</th>
+              <th>Avg Attempts</th>
+              <th>Score 4 Count</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+  </script>
+</body>
 </html>
