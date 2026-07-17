@@ -8,16 +8,30 @@
 </head>
 <body>
   <h1>Password Policy Analyzer</h1>
-  <p>Testing hypotheses about password strength and policy design.</p>
+  <p>Testing two hypotheses about password strength and policy design.</p>
 
   <div class="controls">
-    <button id="runBtn" onclick="runAnalysis()">Run Analysis</button>
-    <label for="countInput">Passwords per policy:</label>
-    <input type="number" id="countInput" value="100" min="10" max="500">
+    <label>Passwords per policy:</label>
+    <input type="number" id="passwordCount" value="100" min="10" max="1000">
+    <button id="runBtn">Run Full Analysis</button>
     <span id="status"></span>
   </div>
 
-  <div id="app">
+  <div id="results" style="display: none;">
+    <h2>Policy Comparison</h2>
+    <table class="results-table" id="resultsTable">
+      <thead>
+        <tr>
+          <th>Policy</th>
+          <th>Avg Score</th>
+          <th>Avg Entropy</th>
+          <th>Avg Attempts</th>
+          <th>Score 4 (%)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
     <div class="chart-container">
       <h2>Password Strength by Policy</h2>
       <canvas id="scoreChart" width="700" height="450"></canvas>
@@ -35,8 +49,8 @@
       <canvas id="entropyChart" width="700" height="450"></canvas>
     </div>
 
-    <div id="hypothesisResults"></div>
-    <div id="resultsTable"></div>
+    <h2>Hypothesis Verification</h2>
+    <div id="hypotheses"></div>
   </div>
 
   <script src="lib/zxcvbn.js"></script>
@@ -47,83 +61,71 @@
   <script src="js/analyzer.js"></script>
 
   <script>
-    function runAnalysis() {
+    document.getElementById('runBtn').addEventListener('click', () => {
       const btn    = document.getElementById('runBtn');
       const status = document.getElementById('status');
-      const count  = parseInt(document.getElementById('countInput').value) || 100;
+      const count  = parseInt(document.getElementById('passwordCount').value) || 100;
 
-      btn.disabled   = true;
-      status.textContent = 'Running analysis...';
+      btn.disabled       = true;
+      status.textContent = 'Generating and analyzing...';
 
-      // Small timeout so the UI updates before the heavy computation starts
       setTimeout(() => {
-        const results = runFullAnalysis(count);
+        try {
+          const results = runFullAnalysis(count);
 
-        drawScoreBarChart(results, 'scoreChart');
-        drawAttemptsChart(results, 'attemptsChart');
-        drawEntropyChart(results, 'entropyChart');
+          // Show results section
+          document.getElementById('results').style.display = 'block';
 
-        const verdict = verifyHypotheses(results);
-        renderHypothesisResults(verdict);
-        renderResultsTable(results);
-
-        btn.disabled = false;
-        status.textContent = 'Done.';
-      }, 50);
-    }
-
-    function renderHypothesisResults(verdict) {
-      const container = document.getElementById('hypothesisResults');
-      container.innerHTML = `
-        <h2>Hypothesis Results</h2>
-        <div class="hypothesis-result ${verdict.h1.supported ? 'supported' : 'unsupported'}">
-          <h3>H1: ${verdict.h1.supported ? 'Supported' : 'Not Supported'}</h3>
-          <p>${verdict.h1.hypothesis}</p>
-          <p><strong>Evidence:</strong> ${verdict.h1.comparison}</p>
-          <p><strong>Entropy:</strong> ${verdict.h1.entropyComparison}</p>
-        </div>
-        <div class="hypothesis-result ${verdict.h2.supported ? 'supported' : 'unsupported'}">
-          <h3>H2: ${verdict.h2.supported ? 'Supported' : 'Not Supported'}</h3>
-          <p>${verdict.h2.hypothesis}</p>
-          <p><strong>Evidence:</strong> ${verdict.h2.comparison}</p>
-          <p><strong>Friction increase:</strong> ${verdict.h2.rejectionIncrease}</p>
-          <p><strong>Security gain:</strong> ${verdict.h2.securityGain}</p>
-        </div>
-        <div class="chart-container">
-          <h2>Recommendation</h2>
-          <p>${verdict.recommendation}</p>
-        </div>
-      `;
-    }
-
-    function renderResultsTable(results) {
-      const container = document.getElementById('resultsTable');
-      const rows = results.map(r => `
-        <tr>
-          <td>${r.policyName}</td>
-          <td>${r.avgScore.toFixed(2)}</td>
-          <td>${r.avgEntropy.toFixed(1)} bits</td>
-          <td>${r.avgAttempts.toFixed(2)}</td>
-          <td>${r.scoreDistribution.score4} / ${r.totalPasswords}</td>
-        </tr>
-      `).join('');
-
-      container.innerHTML = `
-        <h2>Full Results Table</h2>
-        <table class="results-table">
-          <thead>
+          // Populate table
+          const tbody = document.querySelector('#resultsTable tbody');
+          tbody.innerHTML = results.map(r => `
             <tr>
-              <th>Policy</th>
-              <th>Avg zxcvbn Score</th>
-              <th>Avg Entropy</th>
-              <th>Avg Attempts</th>
-              <th>Score 4 Count</th>
+              <td><strong>${r.policyName}</strong><br>
+                  <small>${POLICIES.find(p => p.id === r.policyId).description}</small></td>
+              <td>${r.avgScore.toFixed(2)} / 4</td>
+              <td>${r.avgEntropy.toFixed(1)} bits</td>
+              <td>${r.avgAttempts.toFixed(1)}</td>
+              <td>${((r.scoreDistribution.score4 / r.totalPasswords) * 100).toFixed(0)}%</td>
             </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      `;
-    }
+          `).join('');
+
+          // Draw charts
+          drawScoreBarChart(results, 'scoreChart');
+          drawAttemptsChart(results, 'attemptsChart');
+          drawEntropyChart(results, 'entropyChart');
+
+          // Verify hypotheses
+          const verification = verifyHypotheses(results);
+          document.getElementById('hypotheses').innerHTML = `
+            <div class="hypothesis-result ${verification.h1.supported ? 'supported' : 'unsupported'}">
+              <h3>Hypothesis 1: ${verification.h1.supported ? 'Supported' : 'Not Supported'}</h3>
+              <p><strong>${verification.h1.hypothesis}</strong></p>
+              <p>${verification.h1.verdict}</p>
+              <p><strong>zxcvbn:</strong> ${verification.h1.zxcvbnComparison}</p>
+              <p><strong>Entropy:</strong> ${verification.h1.entropyComparison}</p>
+            </div>
+            <div class="hypothesis-result ${verification.h2.supported ? 'supported' : 'unsupported'}">
+              <h3>Hypothesis 2: ${verification.h2.supported ? 'Supported' : 'Not Supported'}</h3>
+              <p><strong>${verification.h2.hypothesis}</strong></p>
+              <p>${verification.h2.verdict}</p>
+              <p><strong>Friction increase:</strong> ${verification.h2.frictionIncrease}</p>
+              <p><strong>Security gain:</strong> ${verification.h2.securityGain}</p>
+            </div>
+            <div class="hypothesis-result supported" style="border-left-color: #E0AFA0;">
+              <h3>Recommendation</h3>
+              <p>${verification.recommendation}</p>
+            </div>
+          `;
+
+          status.textContent = 'Analysis complete.';
+        } catch (error) {
+          status.textContent = 'Error: ' + error.message;
+          console.error(error);
+        } finally {
+          btn.disabled = false;
+        }
+      }, 100);
+    });
   </script>
 </body>
 </html>
