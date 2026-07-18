@@ -113,15 +113,10 @@ function median(arr) {
 function runFullAnalysis(passwordCount = 100) {
   const allResults = [];
   for (const policy of POLICIES) {
-    console.log(`Generating ${passwordCount} passwords for ${policy.name}...`);
     const batch    = generateBatch(policy, passwordCount);
     const analysis = analyzeBatch(batch, policy);
     allResults.push(analysis);
-    console.log(`  Done. Avg attempts: ${analysis.avgAttempts.toFixed(1)}, ` +
-                `Avg score: ${analysis.avgScore.toFixed(2)}, ` +
-                `Avg entropy: ${analysis.avgEntropy.toFixed(1)} bits`);
-  }
-  console.log('Full analysis complete.');
+      }
   return allResults;
 }
 
