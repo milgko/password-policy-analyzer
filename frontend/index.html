@@ -53,6 +53,22 @@
     <div id="hypotheses"></div>
   </div>
 
+  <div style="margin: 20px 0; padding: 15px; border: 1px dashed #666;">
+  <h3>🔌 Server-Side Analysis</h3>
+  <label>Passwords per policy: <input type="number" id="apiCount" value="100" min="10" max="500"></label>
+  <label>Generator type:
+    <select id="apiGeneratorType">
+      <option value="random">Random only</option>
+      <option value="mixed">Mixed (30% human-like)</option>
+    </select>
+  </label>
+  <button onclick="runServerAnalysis()" style="padding:8px 20px; font-size:14px;">
+    Run on Server
+  </button>
+  <p id="apiStatus" style="color: #aaa; margin-top: 10px;"></p>
+  <pre id="apiResult" style="background:#111; color:#0f0; padding:10px; max-height:400px; overflow-y:auto; display:none;"></pre>
+</div>
+
   <script src="lib/zxcvbn.js"></script>
   <script src="js/policies.js"></script>
   <script src="js/generator.js"></script>
@@ -126,6 +142,33 @@
         }
       }, 100);
     });
+  </script>
+
+  <script>
+    async function runServerAnalysis() {
+      const apiBase = 'http://127.0.0.1:8000/api';
+      const count = document.getElementById('apiCount').value;
+      const generatorType = document.getElementById('apiGeneratorType').value;
+      const status = document.getElementById('apiStatus');
+      const resultPre = document.getElementById('apiResult');
+
+    status.textContent = 'Running analysis on server...';
+
+    try {
+      const response = await fetch(apiBase + '/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password_count: parseInt(count), generator_type: generatorType })
+      });
+
+      const data = await response.json();
+      status.textContent = 'Analysis complete. Run ID: ' + data.run_id;
+      resultPre.style.display = 'block';
+      resultPre.textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      status.textContent = 'Error: ' + err.message + ' (Is Laravel running?)';
+    }
+    }
   </script>
 </body>
 </html>
