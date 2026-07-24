@@ -4,16 +4,16 @@ namespace App\Services;
 class HypothesisVerifier
 {
     /**
-     * Verify H1: "Minimum length is more effective than character class complexity."
-     * Compares P2 (min 8, uppercase+digit) vs P3 (min 12, no complexity rules).
-     */
+    * Verify H1: "Minimum length is more effective than character class complexity."
+    * Compares P2 - Length-Only (12 chars, no complexity) vs P3 - Complex-Only (6 chars, uppercase+digit+symbol).
+    */
     public function verifyH1(array $results): array
     {
-        $p2 = $results[1]; // P2 - Moderate (8 chars, uppercase+digit required)
-        $p3 = $results[2]; // P3 - Strict NIST (12 chars, no complexity rules)
+        $p2 = $results[1]; // P2 - Length-Only (12 chars, no complexity)
+        $p3 = $results[2]; // P3 - Complex-Only (6 chars, uppercase+digit+symbol)
 
-        $lengthWins = $p3['avg_zxcvbn_score'] > $p2['avg_zxcvbn_score'];
-        $difference = round($p3['avg_zxcvbn_score'] - $p2['avg_zxcvbn_score'], 2);
+        $lengthWins = $p2['avg_zxcvbn_score'] > $p3['avg_zxcvbn_score'];
+        $difference = round($p2['avg_zxcvbn_score'] - $p3['avg_zxcvbn_score'], 2);
 
         return [
             'hypothesis' => 'H1: Minimum length is more effective than character class complexity',
@@ -22,8 +22,8 @@ class HypothesisVerifier
             'p3_score' => $p3['avg_zxcvbn_score'],
             'difference' => $difference,
             'evidence' => $lengthWins
-                ? "P3 (12 chars, no complexity) scored {$p3['avg_zxcvbn_score']} vs P2 (8 chars, uppercase+digit) scored {$p2['avg_zxcvbn_score']}. Length alone outperformed complexity requirements by {$difference} points."
-                : "P3 (12 chars, no complexity) scored {$p3['avg_zxcvbn_score']} vs P2 (8 chars, uppercase+digit) scored {$p2['avg_zxcvbn_score']}. Length did not outperform complexity in this run.",
+                ? "P2 (12 chars, no complexity) scored {$p2['avg_zxcvbn_score']} vs P3 (6 chars, uppercase+digit+symbol) scored {$p3['avg_zxcvbn_score']}. Length alone outperformed complexity requirements by {$difference} points."
+                : "P2 (12 chars, no complexity) scored {$p2['avg_zxcvbn_score']} vs P3 (6 chars, uppercase+digit+symbol) scored {$p3['avg_zxcvbn_score']}. Length did not outperform complexity in this run.",
             'recommendation' => 'Policies should prioritise minimum length over character class requirements.',
         ];
     }
