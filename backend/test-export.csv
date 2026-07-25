@@ -1,0 +1,6 @@
+Policy,Min Length,Avg zxcvbn,Avg Entropy (bits),Avg Attempts,Score 4/4 %,Passwords
+P1 - Lenient,6,1,28.2,1,0,100
+P2 - Length-Only,12,4,56.4,1,100,100
+P3 - Complex-Only,6,1,38.8,2.2,0,100
+P4 - Standard,8,2,47.4,1.4,0,100
+P5 - Paranoid,12,4,78.7,1.5,100,100
